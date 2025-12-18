@@ -54,7 +54,7 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
       .x(d => x(d.data.date))
       .y0(d => y(d[0]))
       .y1(d => y(d[1]))
-      .curve(d3.curveBasis);
+      .curve(d3.curveCatmullRom.alpha(0.5));
 
     g.selectAll('path')
       .data(series)
@@ -93,6 +93,33 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
 
     g.selectAll('.domain, .tick line')
       .attr('stroke', '#374151');
+
+    g.append('g')
+      .attr('class', 'grid')
+      .selectAll('line')
+      .data(x.ticks(8))
+      .join('line')
+      .attr('x1', d => x(d))
+      .attr('x2', d => x(d))
+      .attr('y1', 0)
+      .attr('y2', innerHeight)
+      .attr('stroke', '#374151')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.1);
+
+    const yTicks = y.ticks(5);
+    g.append('g')
+      .attr('class', 'grid')
+      .selectAll('line')
+      .data(yTicks)
+      .join('line')
+      .attr('x1', 0)
+      .attr('x2', innerWidth)
+      .attr('y1', d => y(d))
+      .attr('y2', d => y(d))
+      .attr('stroke', '#374151')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.1);
 
     svg.append('text')
       .attr('x', width / 2)

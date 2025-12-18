@@ -36,7 +36,7 @@ const MilestoneTimelineVisualization = ({
       .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
     const allGenres = new Set();
-    groupedData.forEach(period => {
+    validGroupedData.forEach(period => {
       period.genres.forEach(g => allGenres.add(g.genre));
     });
 
@@ -44,8 +44,16 @@ const MilestoneTimelineVisualization = ({
       .filter(g => unknownDisplay === 'hide' ? g !== 'Unknown' : true)
       .slice(0, 12);
 
+    const validGroupedData = groupedData.filter(period => {
+      const date = new Date(period.periodStart);
+      const year = date.getFullYear();
+      return year >= 2000 && year <= 2030;
+    });
+
+    if (validGroupedData.length === 0) return;
+
     const xScale = d3.scaleLinear()
-      .domain([0, groupedData.length - 1])
+      .domain([0, validGroupedData.length - 1])
       .range([0, chartWidth]);
 
     const laneHeight = chartHeight / (genreList.length + 1);
@@ -61,7 +69,7 @@ const MilestoneTimelineVisualization = ({
     genreList.forEach((genre, genreIdx) => {
       const y = genreIdx * laneHeight;
 
-      const genreData = groupedData.map((period, idx) => {
+      const genreData = validGroupedData.map((period, idx) => {
         const data = period.genres.find(g => g.genre === genre);
         return {
           x: xScale(idx),
@@ -343,7 +351,7 @@ const MilestoneTimelineVisualization = ({
         .attr('opacity', 1);
     });
 
-    groupedData.forEach((period, i) => {
+    validGroupedData.forEach((period, i) => {
       const x = xScale(i);
 
       g.append('text')

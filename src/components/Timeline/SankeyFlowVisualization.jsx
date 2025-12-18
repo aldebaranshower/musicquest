@@ -29,8 +29,16 @@ const SankeyFlowVisualization = ({
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
+    const validGroupedData = groupedData.filter(period => {
+      const date = new Date(period.periodStart);
+      const year = date.getFullYear();
+      return year >= 2000 && year <= 2030 && !period.periodLabel.includes('1970');
+    });
+
+    if (validGroupedData.length === 0) return;
+
     const allGenres = new Set();
-    groupedData.forEach(period => {
+    validGroupedData.forEach(period => {
       period.genres.forEach(g => allGenres.add(g.genre));
     });
 
@@ -38,7 +46,7 @@ const SankeyFlowVisualization = ({
       .filter(g => unknownDisplay === 'hide' ? g !== 'Unknown' : true);
 
     const xScale = d3.scaleLinear()
-      .domain([0, groupedData.length - 1])
+      .domain([0, validGroupedData.length - 1])
       .range([60, width - 60]);
 
     const yScale = d3.scaleLinear()
@@ -47,7 +55,7 @@ const SankeyFlowVisualization = ({
 
     const g = svg.append('g');
 
-    groupedData.forEach((period, i) => {
+    validGroupedData.forEach((period, i) => {
       const x = xScale(i);
       g.append('text')
         .attr('x', x)
@@ -65,7 +73,7 @@ const SankeyFlowVisualization = ({
     });
 
     if (unknownDisplay !== 'hide') {
-      groupedData.forEach((period, i) => {
+      validGroupedData.forEach((period, i) => {
         const unknownGenre = period.genres.find(g => g.genre === 'Unknown');
         if (unknownGenre) {
           const x = xScale(i);
@@ -89,7 +97,7 @@ const SankeyFlowVisualization = ({
       .forEach((genre, genreIdx) => {
         const pathData = [];
 
-        groupedData.forEach((period, i) => {
+        validGroupedData.forEach((period, i) => {
           const genreData = period.genres.find(g => g.genre === genre);
           if (genreData) {
             const x = xScale(i);
@@ -298,9 +306,9 @@ const SankeyFlowVisualization = ({
       });
 
     gatewayArtists.forEach(gateway => {
-      if (gateway.periodIndex < groupedData.length) {
+      if (gateway.periodIndex < validGroupedData.length) {
         const x = xScale(gateway.periodIndex);
-        const genreData = groupedData[gateway.periodIndex].genres.find(
+        const genreData = validGroupedData[gateway.periodIndex].genres.find(
           g => g.genre === gateway.triggerGenre
         );
 
@@ -369,7 +377,7 @@ const SankeyFlowVisualization = ({
       }
     });
 
-    groupedData.forEach((period, i) => {
+    validGroupedData.forEach((period, i) => {
       const x = xScale(i);
 
       g.append('text')

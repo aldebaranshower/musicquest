@@ -70,7 +70,20 @@ export const groupListensByTimePeriod = (listens, period, genreMap) => {
   const groups = new Map();
 
   listens.forEach(listen => {
-    const periodStart = getStartOfPeriod(listen.timestamp, period);
+    const timestamp = listen.timestamp || listen.listened_at;
+
+    if (!timestamp || timestamp < 946684800 || timestamp > 2147483647) {
+      return;
+    }
+
+    const timestampMs = timestamp * 1000;
+    const date = new Date(timestampMs);
+
+    if (date.getFullYear() < 2000 || date.getFullYear() > 2030) {
+      return;
+    }
+
+    const periodStart = getStartOfPeriod(timestampMs, period);
     const periodKey = periodStart.toString();
 
     if (!groups.has(periodKey)) {
