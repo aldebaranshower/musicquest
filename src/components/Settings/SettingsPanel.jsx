@@ -11,7 +11,10 @@ const SettingsPanel = () => {
   const visualizationModes = [
     { value: 'sankey', label: 'Sankey Flow', description: 'Genre transitions over time' },
     { value: 'galaxy', label: 'Genre Galaxy', description: 'Orbital view with timeline spiral' },
-    { value: 'milestone', label: 'Milestone Timeline', description: 'Story mode with key moments' }
+    { value: 'milestone', label: 'Milestone Timeline', description: 'Story mode with key moments' },
+    { value: 'stream', label: 'Stream Graph', description: 'Top genres flowing over time' },
+    { value: 'clock', label: 'Listening Clock', description: '24-hour listening pattern' },
+    { value: 'fingerprint', label: 'Listening Fingerprint', description: 'Your listening habits radar' }
   ];
 
   const timePeriods = [

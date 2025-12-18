@@ -6,6 +6,9 @@ import { generateMilestones } from '../../utils/dataPreparation';
 import SankeyFlowVisualization from './SankeyFlowVisualization';
 import GenreGalaxyVisualization from './GenreGalaxyVisualization';
 import MilestoneTimelineVisualization from './MilestoneTimelineVisualization';
+import GenreStreamGraph from './GenreStreamGraph';
+import ListeningClockVisualization from './ListeningClockVisualization';
+import ListeningFingerprintRadar from './ListeningFingerprintRadar';
 import GenreTooltip from './GenreTooltip';
 import TimelineControls from './TimelineControls';
 import ClassificationProgress from './ClassificationProgress';
@@ -351,6 +354,30 @@ const GenreTimeline = () => {
               onMilestoneClick={handleMilestoneClick}
               selectedGenre={selectedGenre}
               unknownDisplay={unknownDisplay}
+            />
+          )}
+
+          {state.visualizationMode === 'stream' && (
+            <GenreStreamGraph
+              listens={state.listens}
+              width={dimensions.width - 48}
+              height={dimensions.height}
+            />
+          )}
+
+          {state.visualizationMode === 'clock' && (
+            <ListeningClockVisualization
+              listens={state.listens}
+              width={Math.min(dimensions.width - 48, 600)}
+              height={Math.min(dimensions.width - 48, 600)}
+            />
+          )}
+
+          {state.visualizationMode === 'fingerprint' && (
+            <ListeningFingerprintRadar
+              listens={state.listens}
+              width={Math.min(dimensions.width - 48, 600)}
+              height={Math.min(dimensions.width - 48, 600)}
             />
           )}
 
