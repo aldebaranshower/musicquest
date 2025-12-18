@@ -223,7 +223,7 @@ export const saveGenreCache = async (artist, genres, mbid = null, source = 'unkn
   try {
     if (!db) await initDB();
 
-    await db.put(STORES.GENRES, {
+    const cacheEntry = {
       artist,
       mbid,
       genres,
@@ -231,7 +231,10 @@ export const saveGenreCache = async (artist, genres, mbid = null, source = 'unkn
       lastFetched: Date.now(),
       fetchAttempts: 1,
       lastError: null
-    });
+    };
+
+    await db.put(STORES.GENRES, cacheEntry);
+    console.log(`💾 Cached genres for "${artist}" (source: ${source}):`, genres);
     return true;
   } catch (error) {
     console.error('Failed to save genre cache:', error);
@@ -244,13 +247,18 @@ export const getGenreCache = async (artist) => {
     if (!db) await initDB();
 
     const cached = await db.get(STORES.GENRES, artist);
-    if (!cached) return null;
-
-    const daysSinceFetch = (Date.now() - cached.lastFetched) / (1000 * 60 * 60 * 24);
-    if (daysSinceFetch > 30) {
+    if (!cached) {
+      console.log(`Genre cache MISS: ${artist}`);
       return null;
     }
 
+    const daysSinceFetch = (Date.now() - cached.lastFetched) / (1000 * 60 * 60 * 24);
+    if (daysSinceFetch > 30) {
+      console.log(`Genre cache EXPIRED (${daysSinceFetch.toFixed(1)} days): ${artist}`);
+      return null;
+    }
+
+    console.log(`Genre cache HIT (${daysSinceFetch.toFixed(1)} days old, source: ${cached.source}): ${artist}`);
     return cached.genres;
   } catch (error) {
     console.error('Failed to get genre cache:', error);

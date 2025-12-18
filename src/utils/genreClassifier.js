@@ -11,11 +11,13 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
     }
 
     const cached = await getGenreCache(artistName);
-    if (cached) {
+    if (cached && cached.length > 0) {
+      console.log(`✅ Using cached genres for "${artistName}":`, cached);
       if (onProgress) onProgress({ artist: artistName, status: 'cached', genres: cached });
       return { success: true, genres: cached, source: 'cache' };
     }
 
+    console.log(`🔍 Fetching genres for "${artistName}"...`);
     if (onProgress) onProgress({ artist: artistName, status: 'fetching' });
 
     const heuristicGenres = classifyByHeuristics(artistName);

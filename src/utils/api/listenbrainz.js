@@ -6,7 +6,7 @@ const LISTENBRAINZ_LABS_API = 'https://labs.api.listenbrainz.org';
 
 const apiClient = createAxiosInstance(LISTENBRAINZ_API);
 
-export const fetchUserListens = async (username, token, count = 100, maxTs = null, minTs = null, onProgress) => {
+export const fetchUserListens = async (username, token, count = 1000, maxTs = null, minTs = null, onProgress) => {
   try {
     let url = `https://api.listenbrainz.org/1/user/${username}/listens?count=${count}`;
     if (maxTs) url += `&max_ts=${maxTs}`;
@@ -74,38 +74,58 @@ export const fetchUserListens = async (username, token, count = 100, maxTs = nul
   }
 };
 
-export const fetchAllUserListens = async (username, token, onProgress) => {
+export const fetchAllUserListens = async (username, token, onProgress, maxListens = null) => {
   const allListens = [];
-  const batchSize = 100;
+  const batchSize = 1000;
   let maxTs = null;
   let hasMore = true;
+  let batchCount = 0;
+
+  console.log('🚀 Starting full listen history fetch (1000 per request)...');
 
   while (hasMore) {
+    batchCount++;
     const result = await fetchUserListens(username, token, batchSize, maxTs, null, onProgress);
 
     if (!result.success) {
+      console.error(`❌ Batch ${batchCount} failed:`, result.error);
       return result;
     }
 
     if (result.listens.length === 0) {
+      console.log('✅ No more listens to fetch');
       hasMore = false;
     } else {
       allListens.push(...result.listens);
+      console.log(`📦 Batch ${batchCount}: Fetched ${result.listens.length} listens (Total: ${allListens.length.toLocaleString()})`);
 
-      // Get the oldest timestamp from this batch for pagination
       const oldestListen = result.listens[result.listens.length - 1];
-      maxTs = oldestListen?.listened_at || null;
+      const oldestTimestamp = oldestListen?.listened_at;
+
+      if (oldestTimestamp) {
+        maxTs = oldestTimestamp - 1;
+      } else {
+        console.warn('⚠️ No listened_at timestamp found, stopping pagination');
+        hasMore = false;
+      }
 
       if (result.listens.length < batchSize) {
+        console.log(`✅ Received ${result.listens.length} < ${batchSize}, reached end of history`);
         hasMore = false;
       }
     }
 
-    if (allListens.length >= 10000) {
-      console.warn('Reached limit of 10,000 listens');
+    if (maxListens && allListens.length >= maxListens) {
+      console.log(`🛑 Reached configured limit of ${maxListens.toLocaleString()} listens`);
       hasMore = false;
     }
+
+    if (hasMore) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
   }
+
+  console.log(`🎉 Fetch complete! Total: ${allListens.length.toLocaleString()} listens`);
 
   return {
     success: true,
