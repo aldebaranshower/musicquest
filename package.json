@@ -1,8 +1,17 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "musicquest",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "Open-source music listening analytics and visualization platform",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aldebaranshower/musicquest"
+  },
+  "homepage": "https://github.com/aldebaranshower/musicquest#readme",
+  "keywords": ["music", "analytics", "visualization", "listenbrainz", "spotify", "d3"],
+  "author": "MusicQuest Contributors",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

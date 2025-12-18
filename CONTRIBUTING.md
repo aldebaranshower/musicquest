@@ -1,4 +1,4 @@
-# Contributing to Music Genre Evolution Visualizer
+# Contributing to MusicQuest
 
 Thank you for your interest in contributing! This document provides guidelines for contributing to this project.
 
@@ -9,7 +9,7 @@ Be respectful and inclusive. We welcome contributions from everyone.
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/yourusername/music-visualizer.git`
+2. Clone your fork: `git clone https://github.com/yourusername/musicquest.git`
 3. Create a branch: `git checkout -b feature/your-feature-name`
 4. Make your changes
 5. Test your changes

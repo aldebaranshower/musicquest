@@ -1,6 +1,6 @@
 # API Documentation
 
-This document describes the data formats and APIs used by the Music Genre Evolution Visualizer.
+This document describes the data formats and APIs used by MusicQuest.
 
 ## Table of Contents
 

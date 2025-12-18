@@ -17,11 +17,11 @@ function App() {
             <div className="flex items-center justify-center gap-3 mb-3">
               <Music className="w-10 h-10 text-blue-600 dark:text-blue-400" />
               <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-                Music Genre Evolution
+                MusicQuest
               </h1>
             </div>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Visualize your music listening history and discover how your genre preferences evolve over time
+              Discover gateway artists, visualize genre evolution, and explore your music listening journey
             </p>
           </header>
 

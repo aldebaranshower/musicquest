@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
-const DB_NAME = 'MusicVisualizerDB';
-const DB_VERSION = 2;
+const DB_NAME = 'MusicQuestDB';
+const DB_VERSION = 3;
 const STORES = {
   LISTENS: 'listens',
   GENRES: 'genres',
