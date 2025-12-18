@@ -1,24 +1,59 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
+import { calculateListeningFingerprint, validateFingerprintData } from '../../utils/listeningStats';
 
 export default function ListeningFingerprintRadar({ listens, width = 500, height = 500 }) {
   const svgRef = useRef(null);
 
   useEffect(() => {
-    if (!listens || listens.length === 0) return;
+    if (!listens || listens.length === 0) {
+      console.log('⏳ No listens data for fingerprint');
+      return;
+    }
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🎯 CALCULATING LISTENING FINGERPRINT');
+    console.log(`   Processing ${listens.length.toLocaleString()} listens...`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    const stats = calculateListeningFingerprint(listens);
+    const validated = validateFingerprintData(stats);
+
+    if (!validated) {
+      console.error('❌ Failed to validate fingerprint data');
+      return;
+    }
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('✅ FINGERPRINT CALCULATED');
+    console.log(`   Consistency:  ${validated.consistency}/100`);
+    console.log(`   Discovery:    ${validated.discovery}/100`);
+    console.log(`   Variety:      ${validated.variety}/100`);
+    console.log(`   Replay Rate:  ${validated.replayRate}/100`);
+    console.log(`   Exploration:  ${validated.exploration}/100`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const stats = calculateListeningStats(listens);
-
     const data = [
-      { metric: 'Consistency', you: stats.consistency, avg: 60, max: 100 },
-      { metric: 'Discovery', you: stats.discoveryRate, avg: 45, max: 100 },
-      { metric: 'Replay Rate', you: stats.replayRate, avg: 50, max: 100 },
-      { metric: 'Variety', you: stats.variety, avg: 55, max: 100 },
-      { metric: 'Exploration', you: stats.exploration, avg: 40, max: 100 }
+      { metric: 'Consistency', you: validated.consistency, avg: 60, max: 100 },
+      { metric: 'Discovery', you: validated.discovery, avg: 45, max: 100 },
+      { metric: 'Replay Rate', you: validated.replayRate, avg: 50, max: 100 },
+      { metric: 'Variety', you: validated.variety, avg: 55, max: 100 },
+      { metric: 'Exploration', you: validated.exploration, avg: 40, max: 100 }
     ];
+
+    const hasInvalidData = data.some(d =>
+      isNaN(d.you) || isNaN(d.avg) ||
+      d.you === undefined || d.avg === undefined ||
+      d.you === null || d.avg === null
+    );
+
+    if (hasInvalidData) {
+      console.error('❌ Invalid radar data detected:', data);
+      return;
+    }
 
     const centerX = width / 2;
     const centerY = height / 2;
@@ -202,54 +237,3 @@ export default function ListeningFingerprintRadar({ listens, width = 500, height
   );
 }
 
-function calculateListeningStats(listens) {
-  const uniqueTracks = new Set(listens.map(l => `${l.trackName}-${l.artistName}`)).size;
-  const totalListens = listens.length;
-
-  const trackCounts = {};
-  const artistCounts = {};
-  const dailyListens = {};
-  const genreCounts = {};
-
-  listens.forEach(listen => {
-    const trackKey = `${listen.trackName}-${listen.artistName}`;
-    trackCounts[trackKey] = (trackCounts[trackKey] || 0) + 1;
-
-    artistCounts[listen.artistName] = (artistCounts[listen.artistName] || 0) + 1;
-
-    const timestamp = listen.timestamp || listen.listened_at;
-    if (timestamp) {
-      const date = new Date(timestamp * 1000).toISOString().split('T')[0];
-      dailyListens[date] = (dailyListens[date] || 0) + 1;
-    }
-
-    const genre = listen.normalizedGenre || listen.genre || 'Unknown';
-    genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-  });
-
-  const replayedTracks = Object.values(trackCounts).filter(count => count > 1).length;
-  const replayRate = (replayedTracks / uniqueTracks) * 100;
-
-  const dailyListenArray = Object.values(dailyListens);
-  const avgDaily = dailyListenArray.reduce((a, b) => a + b, 0) / dailyListenArray.length;
-  const variance = dailyListenArray.reduce((sum, val) => sum + Math.pow(val - avgDaily, 2), 0) / dailyListenArray.length;
-  const consistency = Math.max(0, 100 - (Math.sqrt(variance) / avgDaily) * 50);
-
-  const uniqueArtists = Object.keys(artistCounts).length;
-  const discoveryRate = Math.min(100, (uniqueArtists / totalListens) * 1000);
-
-  const uniqueGenres = Object.keys(genreCounts).length;
-  const variety = Math.min(100, uniqueGenres * 5);
-
-  const timestamps = listens.map(l => l.timestamp || l.listened_at).filter(Boolean);
-  const timeSpan = (Math.max(...timestamps) - Math.min(...timestamps)) / (365.25 * 24 * 60 * 60);
-  const exploration = Math.min(100, (uniqueArtists / Math.max(1, timeSpan)) / 5);
-
-  return {
-    consistency: Math.round(consistency),
-    discoveryRate: Math.round(discoveryRate),
-    replayRate: Math.round(replayRate),
-    variety: Math.round(variety),
-    exploration: Math.round(exploration)
-  };
-}
