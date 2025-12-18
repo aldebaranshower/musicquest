@@ -12,7 +12,7 @@ const FileUpload = () => {
   const { parseFiles, parseProgress } = useDataParser();
   const { fetchGenres, isFetching, canResume, checkForResumableProgress, cancelFetch } = useGenreFetch();
   const [isDragging, setIsDragging] = useState(false);
-  const [fileType, setFileType] = useState('listenbrainz');
+  const [fileType, setFileType] = useState('auto');
   const [uploadStatus, setUploadStatus] = useState(null);
   const [uploadMode, setUploadMode] = useState('file');
   const [importMode, setImportMode] = useState('file');
@@ -284,30 +284,41 @@ const FileUpload = () => {
         <>
           <div className="mb-6">
             <label className="block text-sm font-medium mb-3 text-gray-700 dark:text-gray-300">
-              Select Data Source
+              File Format Detection
             </label>
-            <div className="flex gap-4">
+            <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => setFileType('auto')}
+            className={`px-4 py-3 rounded-lg border-2 transition-all ${
+              fileType === 'auto'
+                ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300'
+                : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-400 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <div className="font-medium">Auto-Detect</div>
+            <div className="text-xs mt-1 opacity-75">Recommended</div>
+          </button>
           <button
             onClick={() => setFileType('listenbrainz')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+            className={`px-4 py-3 rounded-lg border-2 transition-all ${
               fileType === 'listenbrainz'
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
                 : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-400 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <div className="font-medium">ListenBrainz</div>
-            <div className="text-xs mt-1 opacity-75">JSON/JSONL format</div>
+            <div className="text-xs mt-1 opacity-75">JSON/JSONL</div>
           </button>
           <button
             onClick={() => setFileType('spotify')}
-            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+            className={`px-4 py-3 rounded-lg border-2 transition-all ${
               fileType === 'spotify'
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
                 : 'border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-gray-400 dark:hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <div className="font-medium">Spotify</div>
-            <div className="text-xs mt-1 opacity-75">Extended streaming history</div>
+            <div className="text-xs mt-1 opacity-75">Streaming History</div>
           </button>
         </div>
       </div>
@@ -404,6 +415,9 @@ const FileUpload = () => {
                 }
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">
+                ListenBrainz or Spotify extended streaming history
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-400 mb-1">
                 Supports multiple files and directories
               </p>
               <p className="text-xs text-gray-400 dark:text-gray-400">

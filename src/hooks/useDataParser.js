@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { parseListenBrainzJSON, validateListenBrainzJSON } from '../utils/parsers/listenbrainz';
 import { parseSpotifyJSON, validateSpotifyJSON } from '../utils/parsers/spotify';
 import { parseJSONL, isJSONLFile } from '../utils/parsers/jsonlParser';
+import { parseUniversalData, validateUniversalData } from '../utils/parsers/universalParser';
 import { mergeListeningData } from '../utils/storage/indexedDB';
 import { useData } from '../context/DataContext';
 import errorLogger from '../utils/errorLogger';
@@ -12,7 +13,7 @@ export const useDataParser = () => {
   const { dispatch, actionTypes } = useData();
   const [parseProgress, setParseProgress] = useState({ percentage: 0, status: '', currentFile: '' });
 
-  const parseFiles = async (files, fileType) => {
+  const parseFiles = async (files, fileType = 'auto') => {
     dispatch({ type: actionTypes.SET_LOADING, payload: true });
     dispatch({ type: actionTypes.SET_ERROR, payload: null });
 
@@ -39,10 +40,10 @@ export const useDataParser = () => {
         });
 
         try {
-          let fileData;
+          let parseResult;
 
           if (isJSONLFile(file.name)) {
-            fileData = await parseJSONL(file, (progress) => {
+            const fileData = await parseJSONL(file, (progress) => {
               const totalProgress = filePercentage + (progress.percentage / files.length);
               setParseProgress({
                 percentage: totalProgress,
@@ -50,55 +51,68 @@ export const useDataParser = () => {
                 currentFile: file.name
               });
             });
+
+            if (fileType === 'listenbrainz' || fileType === 'auto') {
+              const validation = validateListenBrainzJSON(fileData);
+              if (validation.valid) {
+                parseResult = parseListenBrainzJSON(fileData);
+              }
+            }
+            if (!parseResult && (fileType === 'spotify' || fileType === 'auto')) {
+              const validation = validateSpotifyJSON(fileData);
+              if (validation.valid) {
+                parseResult = parseSpotifyJSON(fileData);
+              }
+            }
+            if (!parseResult) {
+              throw new Error('JSONL file format not recognized');
+            }
           } else {
             const fileContent = await file.text();
-            fileData = JSON.parse(fileContent);
 
-            if (!Array.isArray(fileData)) {
-              fileData = [fileData];
+            setParseProgress({
+              percentage: ((i + 0.5) / files.length) * 100,
+              status: `Parsing ${file.name}...`,
+              currentFile: file.name
+            });
+
+            if (fileType === 'auto') {
+              parseResult = parseUniversalData(fileContent, file.name);
+            } else if (fileType === 'listenbrainz') {
+              const fileData = JSON.parse(fileContent);
+              const validation = validateListenBrainzJSON(fileData);
+              if (!validation.valid) {
+                errorLogger.warn(`Invalid ListenBrainz format in ${file.name}: ${validation.message}`, {
+                  context: 'file validation',
+                  file: file.name
+                });
+                console.warn(`Skipping ${file.name}: ${validation.message}`);
+                continue;
+              }
+              parseResult = parseListenBrainzJSON(fileData);
+            } else if (fileType === 'spotify') {
+              const fileData = JSON.parse(fileContent);
+              const validation = validateSpotifyJSON(fileData);
+              if (!validation.valid) {
+                errorLogger.warn(`Invalid Spotify format in ${file.name}: ${validation.message}`, {
+                  context: 'file validation',
+                  file: file.name
+                });
+                console.warn(`Skipping ${file.name}: ${validation.message}`);
+                continue;
+              }
+              parseResult = parseSpotifyJSON(fileData);
+            } else {
+              throw new Error('Unknown file type');
             }
           }
 
-          setParseProgress({
-            percentage: ((i + 0.5) / files.length) * 100,
-            status: `Validating ${file.name}...`,
-            currentFile: file.name
-          });
-
-          let parseResult;
-
-          if (fileType === 'listenbrainz') {
-            const validation = validateListenBrainzJSON(fileData);
-            if (!validation.valid) {
-              errorLogger.warn(`Invalid ListenBrainz format in ${file.name}: ${validation.message}`, {
-                context: 'file validation',
-                file: file.name
-              });
-              console.warn(`Skipping ${file.name}: ${validation.message}`);
-              continue;
-            }
-            parseResult = parseListenBrainzJSON(fileData);
-          } else if (fileType === 'spotify') {
-            const validation = validateSpotifyJSON(fileData);
-            if (!validation.valid) {
-              errorLogger.warn(`Invalid Spotify format in ${file.name}: ${validation.message}`, {
-                context: 'file validation',
-                file: file.name
-              });
-              console.warn(`Skipping ${file.name}: ${validation.message}`);
-              continue;
-            }
-            parseResult = parseSpotifyJSON(fileData);
-          } else {
-            throw new Error('Unknown file type');
-          }
-
-          if (!parseResult.success) {
-            errorLogger.log(new Error(parseResult.error), {
+          if (!parseResult || !parseResult.success) {
+            errorLogger.log(new Error(parseResult?.error || 'Parse failed'), {
               context: 'file parsing',
               file: file.name
             });
-            console.warn(`Error parsing ${file.name}:`, parseResult.error);
+            console.warn(`Error parsing ${file.name}:`, parseResult?.error);
             continue;
           }
 
@@ -106,7 +120,8 @@ export const useDataParser = () => {
           errorLogger.info(`Successfully parsed ${parseResult.listens.length} listens from ${file.name}`, {
             context: 'file parsing',
             file: file.name,
-            count: parseResult.listens.length
+            count: parseResult.listens.length,
+            format: parseResult.format
           });
         } catch (error) {
           errorLogger.log(error, {
