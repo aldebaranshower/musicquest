@@ -1,4 +1,7 @@
 export const detectGatewayArtists = (groupedData, genreMap, listens) => {
+  console.log('🔍 Starting gateway artist detection...');
+  console.log(`📊 Input: ${groupedData?.length || 0} periods, ${listens?.length || 0} listens, ${genreMap?.size || 0} artists mapped`);
+
   const gatewayArtists = [];
   const artistFirstAppearance = new Map();
   const artistFirstTrack = new Map();
@@ -10,6 +13,8 @@ export const detectGatewayArtists = (groupedData, genreMap, listens) => {
       artistFirstTrack.set(artist, listen.trackName);
     }
   });
+
+  console.log(`👤 Tracking ${artistFirstAppearance.size} unique artists`);
 
   for (let i = 0; i < groupedData.length; i++) {
     const currentPeriod = groupedData[i];
@@ -70,6 +75,11 @@ export const detectGatewayArtists = (groupedData, genreMap, listens) => {
         }
       }
     });
+  }
+
+  console.log(`✅ Found ${gatewayArtists.length} gateway artists`);
+  if (gatewayArtists.length > 0) {
+    console.log('🎯 Top 3 gateway artists:', gatewayArtists.slice(0, 3).map(a => `${a.artist} (${a.triggerGenre}, +${a.genreGrowth})`));
   }
 
   return gatewayArtists.sort((a, b) => b.genreGrowthNumeric - a.genreGrowthNumeric);

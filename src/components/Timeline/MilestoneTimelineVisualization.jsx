@@ -19,38 +19,73 @@ const MilestoneTimelineVisualization = ({
   const [hoveredGenre, setHoveredGenre] = useState(null);
 
   useEffect(() => {
-    if (!groupedData.length || !svgRef.current) return;
+    if (!listens || listens.length === 0) {
+      console.warn('MilestoneTimeline: No listens data available');
+      return;
+    }
 
-    renderMilestoneTimeline();
-  }, [groupedData, milestones, width, height, selectedGenre, unknownDisplay]);
+    if (!groupedData || groupedData.length === 0) {
+      console.warn('MilestoneTimeline: No grouped data available');
+      return;
+    }
+
+    if (!svgRef.current) return;
+
+    try {
+      renderMilestoneTimeline();
+    } catch (error) {
+      console.error('MilestoneTimeline rendering error:', error);
+    }
+  }, [groupedData, milestones, width, height, selectedGenre, unknownDisplay, listens]);
 
   const renderMilestoneTimeline = () => {
-    const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove();
+    try {
+      const svg = d3.select(svgRef.current);
+      svg.selectAll('*').remove();
 
-    const margin = { top: 120, right: 40, bottom: 80, left: 140 };
-    const chartWidth = width - margin.left - margin.right;
-    const chartHeight = height - margin.top - margin.bottom;
+      const margin = { top: 120, right: 40, bottom: 80, left: 140 };
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
 
-    const g = svg.append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+      if (chartWidth <= 0 || chartHeight <= 0) {
+        console.warn('MilestoneTimeline: Invalid dimensions');
+        return;
+      }
 
-    const allGenres = new Set();
-    validGroupedData.forEach(period => {
-      period.genres.forEach(g => allGenres.add(g.genre));
-    });
+      // Filter valid data first
+      const validGroupedData = groupedData.filter(period => {
+        if (!period || !period.periodStart) return false;
+        const date = new Date(period.periodStart);
+        const year = date.getFullYear();
+        return year >= 2000 && year <= 2030;
+      });
 
-    const genreList = Array.from(allGenres)
-      .filter(g => unknownDisplay === 'hide' ? g !== 'Unknown' : true)
-      .slice(0, 12);
+      if (validGroupedData.length === 0) {
+        console.warn('MilestoneTimeline: No valid data after filtering');
+        return;
+      }
 
-    const validGroupedData = groupedData.filter(period => {
-      const date = new Date(period.periodStart);
-      const year = date.getFullYear();
-      return year >= 2000 && year <= 2030;
-    });
+      const g = svg.append('g')
+        .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
-    if (validGroupedData.length === 0) return;
+      // Build genre list from valid data
+      const allGenres = new Set();
+      validGroupedData.forEach(period => {
+        if (period.genres && Array.isArray(period.genres)) {
+          period.genres.forEach(g => {
+            if (g && g.genre) allGenres.add(g.genre);
+          });
+        }
+      });
+
+      const genreList = Array.from(allGenres)
+        .filter(g => unknownDisplay === 'hide' ? g !== 'Unknown' : true)
+        .slice(0, 12);
+
+      if (genreList.length === 0) {
+        console.warn('MilestoneTimeline: No genres to display');
+        return;
+      }
 
     const xScale = d3.scaleLinear()
       .domain([0, validGroupedData.length - 1])
@@ -367,6 +402,10 @@ const MilestoneTimelineVisualization = ({
         .text(period.periodLabel);
     });
 
+    } catch (error) {
+      console.error('Error rendering milestone timeline:', error);
+      throw error;
+    }
   };
 
   return (

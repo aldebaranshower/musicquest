@@ -6,7 +6,7 @@ const LISTENBRAINZ_LABS_API = 'https://labs.api.listenbrainz.org';
 
 const apiClient = createAxiosInstance(LISTENBRAINZ_API);
 
-export const fetchUserListens = async (username, token, count = 1000, maxTs = null, minTs = null, onProgress) => {
+export const fetchUserListens = async (username, token, count = 1000, maxTs = null, minTs = null, onProgress, signal = null) => {
   try {
     let url = `https://api.listenbrainz.org/1/user/${username}/listens?count=${count}`;
     if (maxTs) url += `&max_ts=${maxTs}`;
@@ -19,7 +19,7 @@ export const fetchUserListens = async (username, token, count = 1000, maxTs = nu
     console.log(`📡 Fetching: ${url}`);
 
     const response = await listenBrainzLimiter.throttle(async () => {
-      const res = await fetch(url, { headers });
+      const res = await fetch(url, { headers, signal });
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -74,7 +74,7 @@ export const fetchUserListens = async (username, token, count = 1000, maxTs = nu
   }
 };
 
-export const fetchAllUserListens = async (username, token, onProgress, maxListens = null) => {
+export const fetchAllUserListens = async (username, token, onProgress, maxListens = null, signal = null) => {
   const allListens = [];
   const batchSize = 1000;
   let maxTs = null;
@@ -84,8 +84,14 @@ export const fetchAllUserListens = async (username, token, onProgress, maxListen
   console.log('🚀 Starting full listen history fetch (1000 per request)...');
 
   while (hasMore) {
+    // Check if abort signal was triggered
+    if (signal?.aborted) {
+      console.log('🛑 Import aborted by user');
+      throw new DOMException('Import aborted by user', 'AbortError');
+    }
+
     batchCount++;
-    const result = await fetchUserListens(username, token, batchSize, maxTs, null, onProgress);
+    const result = await fetchUserListens(username, token, batchSize, maxTs, null, onProgress, signal);
 
     if (!result.success) {
       console.error(`❌ Batch ${batchCount} failed:`, result.error);
@@ -116,7 +122,7 @@ export const fetchAllUserListens = async (username, token, onProgress, maxListen
     }
 
     if (maxListens && allListens.length >= maxListens) {
-      console.log(`🛑 Reached configured limit of ${maxListens.toLocaleString()} listens`);
+      console.log(`✅ Reached ${maxListens.toLocaleString()} record limit`);
       hasMore = false;
     }
 

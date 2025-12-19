@@ -1,11 +1,53 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-export default function GenreStreamGraph({ listens, width = 900, height = 400 }) {
+export default function GenreStreamGraph({
+  listens,
+  width = 900,
+  height = 400,
+  selectedGenre = null,
+  dateRange = null,
+  showUnknown = true
+}) {
   const svgRef = useRef(null);
 
   useEffect(() => {
+    console.log('🔄 StreamGraph filters changed:', { selectedGenre, dateRange, showUnknown, listensCount: listens?.length });
+
     if (!listens || listens.length === 0) return;
+
+    // Filter listens based on filters
+    let filteredListens = listens;
+
+    if (dateRange?.start && dateRange?.end) {
+      filteredListens = filteredListens.filter(listen => {
+        const timestamp = listen.timestamp || listen.listened_at;
+        if (!timestamp) return false;
+        const date = new Date(timestamp * 1000);
+        return date >= dateRange.start && date <= dateRange.end;
+      });
+    }
+
+    if (selectedGenre) {
+      filteredListens = filteredListens.filter(listen => {
+        const genres = listen.genres || [listen.normalizedGenre || listen.genre];
+        return genres.includes(selectedGenre);
+      });
+    }
+
+    if (!showUnknown) {
+      filteredListens = filteredListens.filter(listen => {
+        const genre = listen.genres?.[0] || listen.normalizedGenre || listen.genre;
+        return genre !== 'Unknown';
+      });
+    }
+
+    console.log(`📊 Filtered: ${filteredListens.length}/${listens.length} listens`);
+
+    if (filteredListens.length === 0) {
+      console.warn('⚠️ No listens after filtering');
+      return;
+    }
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -14,7 +56,7 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
-    const processedData = processListensToStreamData(listens);
+    const processedData = processListensToStreamData(filteredListens);
     if (!processedData || processedData.length === 0) return;
 
     const g = svg
@@ -151,7 +193,7 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
         .text(genre);
     });
 
-  }, [listens, width, height]);
+  }, [listens, width, height, selectedGenre, dateRange, showUnknown]);
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 shadow-lg">
